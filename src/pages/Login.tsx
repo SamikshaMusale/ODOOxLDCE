@@ -4,20 +4,30 @@ import { useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { useAuth } from '../context/AuthContext';
 
 export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { signIn } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate login
-    setTimeout(() => {
-      setIsLoading(false);
+    setError('');
+
+    const { error } = await signIn(email, password);
+    setIsLoading(false);
+
+    if (error) {
+      setError(error);
+    } else {
       navigate('/dashboard');
-    }, 800);
+    }
   };
 
   return (
@@ -28,6 +38,12 @@ export function Login() {
       </div>
 
       <form onSubmit={handleLogin} className="space-y-4">
+        {error && (
+          <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg border border-destructive/20">
+            {error}
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input 
@@ -36,6 +52,8 @@ export function Login() {
             placeholder="you@example.com" 
             required 
             className="h-11"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         
@@ -50,9 +68,11 @@ export function Login() {
             <Input 
               id="password" 
               type={showPassword ? "text" : "password"} 
-              placeholder="????????" 
+              placeholder="••••••••" 
               required 
               className="h-11 pr-10"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
             <button
               type="button"

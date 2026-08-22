@@ -5,10 +5,17 @@ import { Label } from '../components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export function Profile() {
   const { user } = useTripContext();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-10">
@@ -28,7 +35,7 @@ export function Profile() {
             <h2 className="text-2xl font-bold">{user.name}</h2>
             <p className="text-muted-foreground">{user.email}</p>
           </div>
-          <Button variant="outline" className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => navigate('/login')}>
+          <Button variant="outline" className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleSignOut}>
             <LogOut className="mr-2 h-4 w-4" />
             Sign out
           </Button>

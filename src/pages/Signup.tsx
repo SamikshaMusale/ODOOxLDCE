@@ -4,20 +4,42 @@ import { useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { useAuth } from '../context/AuthContext';
 
 export function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { signUp } = useAuth();
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
     setIsLoading(true);
-    // Simulate signup
-    setTimeout(() => {
-      setIsLoading(false);
+    const { error } = await signUp(email, password, name);
+    setIsLoading(false);
+
+    if (error) {
+      setError(error);
+    } else {
       navigate('/dashboard');
-    }, 800);
+    }
   };
 
   return (
@@ -28,6 +50,12 @@ export function Signup() {
       </div>
 
       <form onSubmit={handleSignup} className="space-y-4">
+        {error && (
+          <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg border border-destructive/20">
+            {error}
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="name">Full Name</Label>
           <Input 
@@ -35,6 +63,8 @@ export function Signup() {
             placeholder="John Doe" 
             required 
             className="h-11"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
           />
         </div>
 
@@ -46,6 +76,8 @@ export function Signup() {
             placeholder="you@example.com" 
             required 
             className="h-11"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         
@@ -55,9 +87,11 @@ export function Signup() {
             <Input 
               id="password" 
               type={showPassword ? "text" : "password"} 
-              placeholder="????????" 
+              placeholder="••••••••" 
               required 
               className="h-11 pr-10"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
             <button
               type="button"
@@ -74,9 +108,11 @@ export function Signup() {
           <Input 
             id="confirm-password" 
             type={showPassword ? "text" : "password"} 
-            placeholder="????????" 
+            placeholder="••••••••" 
             required 
             className="h-11"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
           />
         </div>
 

@@ -1,0 +1,218 @@
+# Supabase Authentication & RLS Implementation Plan
+
+## Goal
+Add real Supabase authentication, trip ownership (user_id), and Row Level Security to the existing GlobeTrotter app without breaking any working functionality.
+
+## Current State
+- Login/Signup pages exist but are **fake** — they use `setTimeout` to simulate auth and just `navigate('/dashboard')`
+- `TripContext` uses a hardcoded `MOCK_USER` for the `user` state
+- Profile page displays `MOCK_USER` data and has a "Sign out" button that just navigates to `/login`
+- The `trips` table already has a `user_id UUID` column (nullable) from the original schema
+- All routes are unprotected — anyone can access any page
+- RLS is disabled
+
+## Proposed Changes
+
+---
+
+### 1. Auth Context — `src/context/AuthContext.tsx` [NEW]
+
+Create a dedicated authentication context that:
+- Wraps the app and provides `{ user, session, loading, signIn, signUp, signOut }`
+- Listens to `supabase.auth.onAuthStateChange()` for session changes
+- Restores sessions on refresh via `supabase.auth.getSession()`
+- `user` will be the Supabase `User` object (has `.id`, `.email`, `.user_metadata`)
+
+> [!IMPORTANT]
+> This is a **separate context** from `TripContext`. Auth state and trip state are independent concerns. `TripContext` will read the current user ID from `AuthContext` to filter trips.
+
+---
+
+### 2. Wire Login — `src/pages/Login.tsx` [MODIFY]
+
+Replace the fake `setTimeout` login with:
+```ts
+const { error } = await supabase.auth.signInWithPassword({ email, password });
+```
+- On success: navigate to `/dashboard`
+- On failure: show user-friendly error message below the form
+- Keep the existing UI completely unchanged
+- Wire up the email/password inputs with React state (currently uncontrolled)
+
+---
+
+### 3. Wire Signup — `src/pages/Signup.tsx` [MODIFY]
+
+Replace the fake `setTimeout` signup with:
+```ts
+const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
+```
+- Add password match validation (confirm password field already exists)
+- On success: navigate to `/dashboard`
+- On failure: show error
+- Keep the existing UI unchanged
+
+---
+
+### 4. Protected Routes — `src/App.tsx` [MODIFY]
+
+Add a `<ProtectedRoute>` wrapper that:
+- Checks `AuthContext` for an authenticated user
+- If not authenticated → redirect to `/login`
+- If authenticated but on `/login` or `/signup` → redirect to `/dashboard`
+- Show a loading spinner while auth state is initializing
+
+Wrap the `<AppLayout>` route group with `<ProtectedRoute>`.
+
+---
+
+### 5. TripContext Updates — `src/context/TripContext.tsx` [MODIFY]
+
+Minimal changes:
+- Import and use `useAuth()` to get the current user's ID
+- **`fetchTrips`**: Add `.eq('user_id', userId)` filter so users only see their own trips
+- **`addTrip`**: Include `user_id: userId` in the insert payload
+- **`user` state**: Replace `MOCK_USER` with data derived from the Supabase auth user (id, email, display name from metadata)
+- Re-fetch trips when auth user changes (dependency on userId)
+
+---
+
+### 6. Profile & Logout — `src/pages/Profile.tsx` [MODIFY]
+
+- Replace `MOCK_USER` references with the real auth user data from `useAuth()`
+- Wire the "Sign out" button to call `signOut()` from AuthContext (instead of `navigate('/login')`)
+
+---
+
+### 7. Sidebar / TopBar [NO CHANGE]
+
+These don't reference auth directly. The Profile page handles logout. No changes needed.
+
+---
+
+### 8. Database Migration
+
+**SQL to run in Supabase SQL Editor:**
+
+```sql
+-- Step 1: Enable RLS on all tables
+ALTER TABLE trips ENABLE ROW LEVEL SECURITY;
+ALTER TABLE trip_stops ENABLE ROW LEVEL SECURITY;
+ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
+
+-- Step 2: RLS Policies for TRIPS
+CREATE POLICY "Users can view own trips"
+  ON trips FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own trips"
+  ON trips FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own trips"
+  ON trips FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own trips"
+  ON trips FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Step 3: RLS Policies for TRIP_STOPS (via trip ownership)
+CREATE POLICY "Users can view own trip stops"
+  ON trip_stops FOR SELECT
+  USING (EXISTS (SELECT 1 FROM trips WHERE trips.id = trip_stops.trip_id AND trips.user_id = auth.uid()));
+
+CREATE POLICY "Users can insert own trip stops"
+  ON trip_stops FOR INSERT
+  WITH CHECK (EXISTS (SELECT 1 FROM trips WHERE trips.id = trip_stops.trip_id AND trips.user_id = auth.uid()));
+
+CREATE POLICY "Users can update own trip stops"
+  ON trip_stops FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM trips WHERE trips.id = trip_stops.trip_id AND trips.user_id = auth.uid()));
+
+CREATE POLICY "Users can delete own trip stops"
+  ON trip_stops FOR DELETE
+  USING (EXISTS (SELECT 1 FROM trips WHERE trips.id = trip_stops.trip_id AND trips.user_id = auth.uid()));
+
+-- Step 4: RLS Policies for ACTIVITIES (via trip_stop → trip ownership)
+CREATE POLICY "Users can view own activities"
+  ON activities FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM trip_stops
+    JOIN trips ON trips.id = trip_stops.trip_id
+    WHERE trip_stops.id = activities.trip_stop_id AND trips.user_id = auth.uid()
+  ));
+
+CREATE POLICY "Users can insert own activities"
+  ON activities FOR INSERT
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM trip_stops
+    JOIN trips ON trips.id = trip_stops.trip_id
+    WHERE trip_stops.id = activities.trip_stop_id AND trips.user_id = auth.uid()
+  ));
+
+CREATE POLICY "Users can update own activities"
+  ON activities FOR UPDATE
+  USING (EXISTS (
+    SELECT 1 FROM trip_stops
+    JOIN trips ON trips.id = trip_stops.trip_id
+    WHERE trip_stops.id = activities.trip_stop_id AND trips.user_id = auth.uid()
+  ));
+
+CREATE POLICY "Users can delete own activities"
+  ON activities FOR DELETE
+  USING (EXISTS (
+    SELECT 1 FROM trip_stops
+    JOIN trips ON trips.id = trip_stops.trip_id
+    WHERE trip_stops.id = activities.trip_stop_id AND trips.user_id = auth.uid()
+  ));
+
+-- Step 5: RLS Policies for EXPENSES (via trip ownership)
+CREATE POLICY "Users can view own expenses"
+  ON expenses FOR SELECT
+  USING (EXISTS (SELECT 1 FROM trips WHERE trips.id = expenses.trip_id AND trips.user_id = auth.uid()));
+
+CREATE POLICY "Users can insert own expenses"
+  ON expenses FOR INSERT
+  WITH CHECK (EXISTS (SELECT 1 FROM trips WHERE trips.id = expenses.trip_id AND trips.user_id = auth.uid()));
+
+CREATE POLICY "Users can update own expenses"
+  ON expenses FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM trips WHERE trips.id = expenses.trip_id AND trips.user_id = auth.uid()));
+
+CREATE POLICY "Users can delete own expenses"
+  ON expenses FOR DELETE
+  USING (EXISTS (SELECT 1 FROM trips WHERE trips.id = expenses.trip_id AND trips.user_id = auth.uid()));
+```
+
+> [!WARNING]
+> **I will NOT execute this SQL automatically.** I will implement all the frontend code first, verify the build passes, and then provide you the exact SQL to run in Supabase SQL Editor. You must confirm the SQL has been executed before I can test RLS.
+
+> [!IMPORTANT]
+> **Existing demo trips** (European Summer Escape, Bali Retreat) currently have `user_id = NULL`. After you sign up with a real account, I'll provide SQL to assign them to your user. They will not be deleted.
+
+---
+
+## Open Questions
+
+1. **Email confirmation**: Supabase may require email confirmation by default. For hackathon speed, do you want me to recommend disabling email confirmation in your Supabase dashboard (Authentication → Settings → toggle off "Enable email confirmations")?
+
+2. **Demo trip assignment**: After you create your first account, should I provide SQL to reassign the existing European Summer Escape and Bali Retreat to your new user ID? This way they'll appear under your account after RLS is enabled.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- `npm run build` — TypeScript compilation + Vite bundle
+- `npm run lint` — if available
+
+### Manual Verification
+1. **Signup** → creates account, lands on dashboard
+2. **Create trip** → trip saved with correct `user_id`
+3. **Refresh** → session persists, trips still visible
+4. **Logout** → redirects to login, no trips visible
+5. **Login** → trips reappear
+6. **Second user** → cannot see first user's trips (RLS test)
+7. **All existing features** — itinerary, activities, budget, currency, stops, calendar

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { Trip, TripStop, TripActivity, Expense, MOCK_USER, MOCK_CITIES, User, City } from '../data/mock';
+import { Trip, TripStop, TripActivity, Expense, MOCK_CITIES, User, City } from '../data/mock';
 import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
 interface TripContextType {
   trips: Trip[];
@@ -107,15 +108,32 @@ function transformTrip(
 
 export const TripProvider = ({ children }: { children: ReactNode }) => {
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [user] = useState<User>(MOCK_USER);
+  const { user: authUser } = useAuth();
   const [loading, setLoading] = useState(true);
 
+  // Derive the app-level User from the Supabase auth user
+  const user: User = authUser
+    ? {
+        id: authUser.id,
+        name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Traveler',
+        email: authUser.email || '',
+        avatar: `https://i.pravatar.cc/150?u=${authUser.id}`,
+      }
+    : { id: '', name: 'Guest', email: '', avatar: '' };
+
   const fetchTrips = useCallback(async () => {
+    if (!authUser) {
+      setTrips([]);
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Fetch all trips
+      // Fetch only this user's trips
       const { data: tripRows, error: tripsError } = await supabase
         .from('trips')
         .select('*')
+        .eq('user_id', authUser.id)
         .order('created_at', { ascending: false });
 
       if (tripsError) {
@@ -173,7 +191,7 @@ export const TripProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [authUser]);
 
   useEffect(() => {
     fetchTrips();
@@ -192,6 +210,7 @@ export const TripProvider = ({ children }: { children: ReactNode }) => {
           budget: trip.budget,
           currency: trip.currency || 'INR',
           travel_style: trip.travelStyle,
+          user_id: authUser?.id,
         })
         .select('id')
         .single();

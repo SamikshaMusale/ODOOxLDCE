@@ -1,116 +1,54 @@
 const fs = require('fs');
 
-const path = 'src/data/mock.ts';
-let content = fs.readFileSync(path, 'utf8');
+let content = fs.readFileSync('src/data/mock.ts', 'utf8');
 
-const cities = [
-  // India
-  { name: 'Mumbai', country: 'India', region: 'Asia' },
-  { name: 'Delhi', country: 'India', region: 'Asia' },
-  { name: 'Goa', country: 'India', region: 'Asia' },
-  { name: 'Jaipur', country: 'India', region: 'Asia' },
-  { name: 'Udaipur', country: 'India', region: 'Asia' },
-  { name: 'Agra', country: 'India', region: 'Asia' },
-  { name: 'Bengaluru', country: 'India', region: 'Asia' },
-  { name: 'Hyderabad', country: 'India', region: 'Asia' },
-  { name: 'Chennai', country: 'India', region: 'Asia' },
-  { name: 'Kolkata', country: 'India', region: 'Asia' },
-  { name: 'Pune', country: 'India', region: 'Asia' },
-  { name: 'Manali', country: 'India', region: 'Asia' },
-  { name: 'Shimla', country: 'India', region: 'Asia' },
-  { name: 'Rishikesh', country: 'India', region: 'Asia' },
-  { name: 'Varanasi', country: 'India', region: 'Asia' },
-  
-  // Europe
-  { name: 'Milan', country: 'Italy', region: 'Europe' },
-  { name: 'London', country: 'UK', region: 'Europe' },
-  { name: 'Amsterdam', country: 'Netherlands', region: 'Europe' },
-  { name: 'Barcelona', country: 'Spain', region: 'Europe' },
-  { name: 'Madrid', country: 'Spain', region: 'Europe' },
-  { name: 'Lisbon', country: 'Portugal', region: 'Europe' },
-  { name: 'Berlin', country: 'Germany', region: 'Europe' },
-  { name: 'Vienna', country: 'Austria', region: 'Europe' },
-  { name: 'Prague', country: 'Czech Republic', region: 'Europe' },
-  { name: 'Budapest', country: 'Hungary', region: 'Europe' },
-  { name: 'Athens', country: 'Greece', region: 'Europe' },
-  { name: 'Santorini', country: 'Greece', region: 'Europe' },
-  { name: 'Zurich', country: 'Switzerland', region: 'Europe' },
-  { name: 'Interlaken', country: 'Switzerland', region: 'Europe' },
-  { name: 'Brussels', country: 'Belgium', region: 'Europe' },
-  { name: 'Copenhagen', country: 'Denmark', region: 'Europe' },
-  { name: 'Stockholm', country: 'Sweden', region: 'Europe' },
-  { name: 'Oslo', country: 'Norway', region: 'Europe' },
-  { name: 'Dublin', country: 'Ireland', region: 'Europe' },
-  
-  // Asia
-  { name: 'Kyoto', country: 'Japan', region: 'Asia' },
-  { name: 'Osaka', country: 'Japan', region: 'Asia' },
-  { name: 'Seoul', country: 'South Korea', region: 'Asia' },
-  { name: 'Singapore', country: 'Singapore', region: 'Asia' },
-  { name: 'Bangkok', country: 'Thailand', region: 'Asia' },
-  { name: 'Phuket', country: 'Thailand', region: 'Asia' },
-  { name: 'Jakarta', country: 'Indonesia', region: 'Asia' },
-  { name: 'Kuala Lumpur', country: 'Malaysia', region: 'Asia' },
-  { name: 'Hong Kong', country: 'China', region: 'Asia' },
-  { name: 'Beijing', country: 'China', region: 'Asia' },
-  { name: 'Shanghai', country: 'China', region: 'Asia' },
-  { name: 'Taipei', country: 'Taiwan', region: 'Asia' },
-  { name: 'Hanoi', country: 'Vietnam', region: 'Asia' },
-  { name: 'Ho Chi Minh City', country: 'Vietnam', region: 'Asia' },
-  { name: 'Manila', country: 'Philippines', region: 'Asia' },
-  { name: 'Maldives', country: 'Maldives', region: 'Asia' },
-  { name: 'Kathmandu', country: 'Nepal', region: 'Asia' },
-  
-  // Middle East
-  { name: 'Dubai', country: 'UAE', region: 'Middle East' },
-  { name: 'Abu Dhabi', country: 'UAE', region: 'Middle East' },
-  { name: 'Doha', country: 'Qatar', region: 'Middle East' },
-  { name: 'Istanbul', country: 'Turkey', region: 'Middle East' },
-  { name: 'Riyadh', country: 'Saudi Arabia', region: 'Middle East' },
-  { name: 'Muscat', country: 'Oman', region: 'Middle East' },
-  
-  // Americas
-  { name: 'New York City', country: 'USA', region: 'North America' },
-  { name: 'Los Angeles', country: 'USA', region: 'North America' },
-  { name: 'San Francisco', country: 'USA', region: 'North America' },
-  { name: 'Las Vegas', country: 'USA', region: 'North America' },
-  { name: 'Miami', country: 'USA', region: 'North America' },
-  { name: 'Chicago', country: 'USA', region: 'North America' },
-  { name: 'Toronto', country: 'Canada', region: 'North America' },
-  { name: 'Vancouver', country: 'Canada', region: 'North America' },
-  { name: 'Mexico City', country: 'Mexico', region: 'North America' },
-  { name: 'Cancun', country: 'Mexico', region: 'North America' },
-  { name: 'Rio de Janeiro', country: 'Brazil', region: 'South America' },
-  { name: 'Buenos Aires', country: 'Argentina', region: 'South America' },
-  
-  // Australia / New Zealand
-  { name: 'Sydney', country: 'Australia', region: 'Oceania' },
-  { name: 'Melbourne', country: 'Australia', region: 'Oceania' },
-  { name: 'Brisbane', country: 'Australia', region: 'Oceania' },
-  { name: 'Gold Coast', country: 'Australia', region: 'Oceania' },
-  { name: 'Auckland', country: 'New Zealand', region: 'Oceania' },
-  { name: 'Queenstown', country: 'New Zealand', region: 'Oceania' },
-  
-  // Africa
-  { name: 'Cairo', country: 'Egypt', region: 'Africa' },
-  { name: 'Cape Town', country: 'South Africa', region: 'Africa' },
-  { name: 'Marrakech', country: 'Morocco', region: 'Africa' },
-  { name: 'Nairobi', country: 'Kenya', region: 'Africa' },
-];
+// We need to parse MOCK_CITIES carefully.
+// It's a JS array of objects. We can use a regex to find each city object and replace its image.
+// Or we can just extract the MOCK_CITIES array text, eval it to a JS array, manipulate it, and stringify it back.
+// Since eval works fine here:
+const citiesStart = content.indexOf('export const MOCK_CITIES: City[] = [');
+const citiesEnd = content.indexOf('];', citiesStart) + 2;
+const citiesBlock = content.substring(citiesStart, citiesEnd);
 
-const filteredCities = cities.filter(c => c.name !== 'New York' && c.name !== 'New York City');
+const jsArrayString = citiesBlock.replace('export const MOCK_CITIES: City[] = ', '').trim();
+const cities = eval(jsArrayString);
 
-const newCitiesBlock = filteredCities.map((c, i) => {
-  const id = `c${i + 8}`;
-  return `  { id: '${id}', name: '${c.name}', country: '${c.country}', region: '${c.region}', costIndex: 'Medium', popularity: 4.5, description: 'Experience the beauty of ${c.name}.', image: 'https://images.unsplash.com/photo-1488085061387-422e29b40080?auto=format&fit=crop&q=80&w=800' },`;
-}).join('\n');
+const seenImages = new Set();
+let uniqueBefore = 0;
+let uniqueAfter = 0;
 
-const existingBlockStart = content.indexOf('export const MOCK_CITIES: City[] = [');
-const existingBlockEnd = content.indexOf('];', existingBlockStart) + 2;
+for (let i = 0; i < cities.length; i++) {
+  const city = cities[i];
+  
+  if (!seenImages.has(city.image)) {
+    uniqueBefore++;
+  }
+  
+  // Rule: preserve first 8 exactly as they are
+  if (i < 8) {
+    seenImages.add(city.image);
+    continue;
+  }
+  
+  // Rule: For destinations AFTER the first 8, replace repeated/duplicate images with unique, relevant images.
+  if (seenImages.has(city.image)) {
+    const slug = city.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    city.image = `https://loremflickr.com/800/600/${slug},city?lock=${i}`;
+  }
+  
+  seenImages.add(city.image);
+}
 
-const originalCitiesText = content.substring(existingBlockStart, existingBlockEnd);
-const newMockCities = originalCitiesText.replace('];', newCitiesBlock + '\n];');
-const newContent = content.replace(originalCitiesText, newMockCities);
+const finalSeen = new Set(cities.map(c => c.image));
+uniqueAfter = finalSeen.size;
 
-fs.writeFileSync(path, newContent);
-console.log('Done!');
+console.log(`Total cities: ${cities.length}`);
+console.log(`Unique image URLs before (approx): ${uniqueBefore}`);
+console.log(`Unique image URLs after: ${uniqueAfter}`);
+
+const formattedCities = 'export const MOCK_CITIES: City[] = [\n' + cities.map(c => `  ${JSON.stringify(c).replace(/"/g, "'").replace(/'id'/g, 'id').replace(/'name'/g, 'name').replace(/'country'/g, 'country').replace(/'description'/g, 'description').replace(/'image'/g, 'image').replace(/'rating'/g, 'rating').replace(/'costLevel'/g, 'costLevel')}`).join(',\n') + '\n];';
+
+content = content.substring(0, citiesStart) + formattedCities + content.substring(citiesEnd);
+
+fs.writeFileSync('src/data/mock.ts', content);
+console.log('Update complete.');
