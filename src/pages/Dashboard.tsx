@@ -1,5 +1,6 @@
 import { Plus, Compass, Map, Lightbulb } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { formatMoney } from '../lib/currency';
 import { useTripContext } from '../context/TripContext';
 import { TripCard } from '../components/shared/TripCard';
 import { DestinationCard } from '../components/shared/DestinationCard';
@@ -10,8 +11,12 @@ export function Dashboard() {
   const { user, trips } = useTripContext();
   const navigate = useNavigate();
 
-  const upcomingTrips = trips.filter(t => t.status === 'Upcoming');
-  const pastTrips = trips.filter(t => t.status === 'Past');
+  const upcomingTrips = trips
+    .filter(t => t.status === 'Upcoming')
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  const pastTrips = trips
+    .filter(t => t.status === 'Past')
+    .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 pb-10">
@@ -69,7 +74,7 @@ export function Dashboard() {
             <div>
               <h3 className="font-semibold text-lg mb-1">Travel Insight</h3>
               <p className="text-muted-foreground">
-                Booking flights on Tuesdays generally saves you up to 15%. Consider tracking flights for your upcoming trip to Rome to stay within your ₹50,000 budget!
+                Booking flights on Tuesdays generally saves you up to 15%. Consider tracking flights for your upcoming trip to Rome to stay within your {formatMoney(50000, 'INR')} budget!
               </p>
             </div>
           </div>

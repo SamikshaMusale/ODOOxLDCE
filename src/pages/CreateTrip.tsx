@@ -4,9 +4,11 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Map, Calendar as CalendarIcon, Wallet, ArrowRight } from 'lucide-react';
 import { useTripContext } from '../context/TripContext';
 import { Trip } from '../data/mock';
+import { CURRENCIES } from '../lib/currency';
 
 export function CreateTrip() {
   const navigate = useNavigate();
@@ -19,20 +21,28 @@ export function CreateTrip() {
     endDate: '',
     budget: '',
     description: '',
+    currency: 'INR',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
+    const tripEndDate = new Date(formData.endDate);
+    tripEndDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const computedStatus: 'Upcoming' | 'Past' | 'Draft' = tripEndDate < today ? 'Past' : 'Upcoming';
+
     const newTrip: Trip = {
       id: '', // Will be assigned by Supabase
       name: formData.name,
       coverImage: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80&w=1200',
       startDate: new Date(formData.startDate).toISOString(),
       endDate: new Date(formData.endDate).toISOString(),
-      status: 'Draft',
+      status: computedStatus,
       budget: parseInt(formData.budget) || 0,
+      currency: formData.currency,
       travelStyle: 'Balanced',
       stops: [],
       expenses: []
@@ -105,17 +115,31 @@ export function CreateTrip() {
 
           <div className="space-y-2">
             <Label htmlFor="budget" className="text-base font-semibold">Estimated Budget</Label>
-            <div className="relative">
-              <Wallet className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
-              <Input 
-                id="budget" 
-                type="number" 
-                placeholder="0" 
-                className="pl-10 h-12 text-base"
-                required
-                value={formData.budget}
-                onChange={(e) => setFormData({...formData, budget: e.target.value})}
-              />
+            <div className="flex gap-2">
+              <Select value={formData.currency} onValueChange={(val) => setFormData({...formData, currency: val})}>
+                <SelectTrigger className="w-[120px] h-12 text-base font-medium">
+                  <SelectValue placeholder="Currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(CURRENCIES).map(([code, symbol]) => (
+                    <SelectItem key={code} value={code}>
+                      {code} ({symbol})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="relative flex-1">
+                <Wallet className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+                <Input 
+                  id="budget" 
+                  type="number" 
+                  placeholder="0" 
+                  className="pl-10 h-12 text-base"
+                  required
+                  value={formData.budget}
+                  onChange={(e) => setFormData({...formData, budget: e.target.value})}
+                />
+              </div>
             </div>
           </div>
 

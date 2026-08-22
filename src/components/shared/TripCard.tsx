@@ -4,6 +4,7 @@ import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { format, differenceInDays } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { formatMoney } from '../../lib/currency';
 import { ImageWithFallback } from './ImageWithFallback';
 
 interface TripCardProps {
@@ -46,7 +47,7 @@ export function TripCard({ trip }: TripCardProps) {
           </div>
           <div className="flex items-center text-sm text-muted-foreground gap-2">
             <Wallet className="h-4 w-4 shrink-0" />
-            <span>₹{trip.budget.toLocaleString()}</span>
+            <span>{formatMoney(trip.budget, trip.currency)}</span>
           </div>
         </CardContent>
       </Card>

@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Trip, TripActivity, TripStop, MOCK_CITIES, MOCK_ACTIVITIES, City, Activity } from '../../data/mock';
+import { formatMoney } from '../../lib/currency';
 import { format, addDays, differenceInDays } from 'date-fns';
 import { Button } from '../ui/button';
-import { Plus, GripVertical, Clock, MapPin, MoreHorizontal, ArrowDown, Trash, Calendar as CalendarIcon, Save } from 'lucide-react';
+import { Plus, GripVertical, Clock, MapPin, MoreHorizontal, ArrowDown, Trash, Calendar as CalendarIcon, Save, Wallet } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
@@ -295,9 +296,10 @@ export function ItineraryTab({ trip, updateTrip }: ItineraryTabProps) {
                               <Clock className="h-3.5 w-3.5" />
                               {activity.duration / 60} hours
                             </span>
-                            <span className="bg-muted/30 px-2 py-1 rounded-md text-emerald-600 font-bold">
-                              ₹{activity.cost.toLocaleString()}
-                            </span>
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-muted/50 rounded-full font-medium">
+                              <Wallet className="h-4 w-4" />
+                              {formatMoney(activity.cost, trip.currency)}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -391,9 +393,9 @@ export function ItineraryTab({ trip, updateTrip }: ItineraryTabProps) {
                 <div>
                   <h4 className="font-bold">{a.name}</h4>
                   <p className="text-xs text-muted-foreground line-clamp-1 mb-1">{a.description}</p>
-                  <div className="flex items-center gap-2 text-xs font-medium">
-                    <Badge variant="secondary" className="text-[10px] h-4">{a.category}</Badge>
-                    <span>₹{a.cost}</span>
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full ml-auto whitespace-nowrap">
+                    <Wallet className="h-3 w-3" />
+                    <span>{formatMoney(a.cost, trip.currency)}</span>
                   </div>
                 </div>
               </div>

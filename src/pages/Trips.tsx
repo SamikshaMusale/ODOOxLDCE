@@ -17,8 +17,12 @@ export function Trips() {
     trip.stops.some(stop => stop.city.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const upcomingTrips = filteredTrips.filter(t => t.status === 'Upcoming');
-  const pastTrips = filteredTrips.filter(t => t.status === 'Past');
+  const upcomingTrips = filteredTrips
+    .filter(t => t.status === 'Upcoming')
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  const pastTrips = filteredTrips
+    .filter(t => t.status === 'Past')
+    .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
   const draftTrips = filteredTrips.filter(t => t.status === 'Draft');
 
   return (

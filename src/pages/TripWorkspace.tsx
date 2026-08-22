@@ -2,18 +2,20 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTripContext } from '../context/TripContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
-import { Share2, Edit3, ArrowLeft, Calendar, MapPin, Wallet } from 'lucide-react';
+import { Share2, Edit3, ArrowLeft, Calendar, MapPin, Wallet, Map, Calendar as CalendarIcon, Wallet as WalletIcon, Save, Copy } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { OverviewTab } from '../components/workspace/OverviewTab';
 import { ItineraryTab } from '../components/workspace/ItineraryTab';
 import { CalendarTab } from '../components/workspace/CalendarTab';
 import { BudgetTab } from '../components/workspace/BudgetTab';
 import { ImageWithFallback } from '../components/shared/ImageWithFallback';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Copy } from 'lucide-react';
 import { useState } from 'react';
+import { Trip } from '../data/mock';
+import { formatMoney, CURRENCIES } from '../lib/currency';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 export function TripWorkspace() {
   const { id } = useParams<{ id: string }>();
@@ -68,10 +70,7 @@ export function TripWorkspace() {
         </div>
 
         <div className="absolute top-4 right-4 flex gap-2">
-          <Button variant="secondary" className="rounded-full bg-white/20 hover:bg-white/40 text-white border-none backdrop-blur-md">
-            <Edit3 className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
+          <EditTripDialog trip={trip} updateTrip={updateTrip} />
 
           <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
             <DialogTrigger asChild>
@@ -128,7 +127,7 @@ export function TripWorkspace() {
             </div>
             <div className="flex items-center gap-1.5 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
               <Wallet className="h-4 w-4" />
-              Budget: ₹{trip.budget?.toLocaleString() || 0}
+              Budget: {formatMoney(trip.budget, trip.currency)}
             </div>
           </div>
         </div>
@@ -157,5 +156,143 @@ export function TripWorkspace() {
       </Tabs>
 
     </div>
+  );
+}
+
+// ---------- Edit Trip Dialog ----------
+
+function EditTripDialog({ trip, updateTrip }: { trip: Trip; updateTrip: (trip: Trip) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    startDate: '',
+    endDate: '',
+    budget: '',
+    currency: 'INR',
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleOpen = (open: boolean) => {
+    if (open) {
+      // Pre-fill with current trip data
+      setFormData({
+        name: trip.name,
+        startDate: trip.startDate.split('T')[0],
+        endDate: trip.endDate.split('T')[0],
+        budget: String(trip.budget),
+        currency: trip.currency || 'INR',
+      });
+    }
+    setIsOpen(open);
+  };
+
+  const handleSave = async () => {
+    if (!formData.name || !formData.startDate || !formData.endDate) return;
+    setIsSaving(true);
+
+    const updatedTrip: Trip = {
+      ...trip, // preserve stops, expenses, and all other fields
+      name: formData.name,
+      startDate: new Date(formData.startDate).toISOString(),
+      endDate: new Date(formData.endDate).toISOString(),
+      budget: parseInt(formData.budget) || 0,
+      currency: formData.currency,
+    };
+
+    updateTrip(updatedTrip);
+    setIsSaving(false);
+    setIsOpen(false);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpen}>
+      <DialogTrigger asChild>
+        <Button variant="secondary" className="rounded-full bg-white/20 hover:bg-white/40 text-white border-none backdrop-blur-md">
+          <Edit3 className="mr-2 h-4 w-4" />
+          Edit
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Edit Trip</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-name" className="text-base font-semibold">Trip Name</Label>
+            <div className="relative">
+              <Map className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+              <Input
+                id="edit-name"
+                className="pl-10 h-11"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-start" className="text-base font-semibold">Start Date</Label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="edit-start"
+                  type="date"
+                  className="pl-10 h-11"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-end" className="text-base font-semibold">End Date</Label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="edit-end"
+                  type="date"
+                  className="pl-10 h-11"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-budget" className="text-base font-semibold">Budget</Label>
+            <div className="flex gap-2">
+              <Select value={formData.currency} onValueChange={(val) => setFormData({...formData, currency: val})}>
+                <SelectTrigger className="w-[120px] h-11 text-base font-medium">
+                  <SelectValue placeholder="Currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(CURRENCIES).map(([code, symbol]) => (
+                    <SelectItem key={code} value={code}>
+                      {code} ({symbol})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="relative flex-1">
+                <WalletIcon className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="edit-budget"
+                  type="number"
+                  className="pl-10 h-11"
+                  value={formData.budget}
+                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            <Save className="mr-2 h-4 w-4" />
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

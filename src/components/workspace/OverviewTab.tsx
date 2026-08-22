@@ -1,8 +1,9 @@
 import { Trip } from '../../data/mock';
+import { formatMoney } from '../../lib/currency';
 import { DestinationCard } from '../shared/DestinationCard';
 import { Card, CardContent } from '../ui/card';
 import { differenceInDays } from 'date-fns';
-import { ArrowRight, Info, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Info, CheckCircle2, Wallet } from 'lucide-react';
 
 export function OverviewTab({ trip }: { trip: Trip }) {
   const duration = differenceInDays(new Date(trip.endDate), new Date(trip.startDate)) + 1;
@@ -55,22 +56,22 @@ export function OverviewTab({ trip }: { trip: Trip }) {
         <Card className="border-none shadow-sm bg-white">
           <CardContent className="p-6 flex flex-col items-center text-center">
             <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
-              <span className="font-bold">₹</span>
+              <Wallet className="h-5 w-5" />
             </div>
             <p className="text-sm text-muted-foreground font-medium">Est. Cost</p>
             <p className="font-bold text-lg">
-              ₹{trip.expenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
+              {formatMoney(trip.expenses.reduce((sum, e) => sum + e.amount, 0), trip.currency)}
             </p>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-white">
           <CardContent className="p-6 flex flex-col items-center text-center">
             <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
-              <span className="font-bold">₹</span>
+              <Wallet className="h-5 w-5" />
             </div>
             <p className="text-sm text-muted-foreground font-medium">Remaining</p>
             <p className="font-bold text-lg">
-              ₹{(trip.budget - trip.expenses.reduce((sum, e) => sum + e.amount, 0)).toLocaleString()}
+              {formatMoney(trip.budget - trip.expenses.reduce((sum, e) => sum + e.amount, 0), trip.currency)}
             </p>
           </CardContent>
         </Card>

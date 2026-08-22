@@ -2,6 +2,7 @@ import { Trip, TripActivity, TripStop } from '../../data/mock';
 import { format, differenceInDays, addDays } from 'date-fns';
 import { MapPin, Utensils, Camera, Palette, Mountain, ShoppingBag, Leaf, Moon, Sparkles, Navigation } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import { formatMoney } from '../../lib/currency';
 import { ImageWithFallback } from '../shared/ImageWithFallback';
 
 const getCategoryIcon = (category: string) => {
@@ -119,7 +120,7 @@ export function CalendarTab({ trip }: { trip: Trip }) {
                       
                       <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground mt-3">
                         <span>{activity.duration / 60} hours</span>
-                        <span className="text-emerald-600 font-bold">₹{activity.cost.toLocaleString()}</span>
+                        <span className="text-emerald-600 font-bold">{formatMoney(activity.cost, trip.currency)}</span>
                       </div>
                     </div>
                   </div>

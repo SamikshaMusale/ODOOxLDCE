@@ -171,3 +171,7 @@ VALUES
 -- =============================================
 -- DONE! Verify with: SELECT * FROM trips;
 -- =============================================
+
+-- ADD CURRENCY TO EXISTING TRIPS TABLE
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'INR';
+

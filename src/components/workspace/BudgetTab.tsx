@@ -1,6 +1,7 @@
 import { Trip } from '../../data/mock';
 import { Card, CardContent } from '../ui/card';
 import { Progress } from '../ui/progress';
+import { formatMoney } from '../../lib/currency';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Wallet, TrendingDown, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
@@ -34,7 +35,7 @@ export function BudgetTab({ trip }: { trip: Trip }) {
               <h3 className="font-medium opacity-90">Total Budget</h3>
               <Wallet className="h-5 w-5 opacity-80" />
             </div>
-            <p className="text-3xl font-bold mb-1">₹{trip.budget.toLocaleString()}</p>
+            <p className="text-3xl font-bold mb-1">{formatMoney(trip.budget, trip.currency)}</p>
             <p className="text-sm opacity-80">Initial planned budget</p>
           </CardContent>
         </Card>
@@ -45,7 +46,7 @@ export function BudgetTab({ trip }: { trip: Trip }) {
               <h3 className="font-medium text-muted-foreground">Total Spent</h3>
               <TrendingDown className="h-5 w-5 text-destructive" />
             </div>
-            <p className="text-3xl font-bold mb-1 text-foreground">₹{totalExpenses.toLocaleString()}</p>
+            <p className="text-3xl font-bold mb-1 text-foreground">{formatMoney(totalExpenses, trip.currency)}</p>
             <p className="text-sm text-muted-foreground">{percentUsed}% of total budget</p>
           </CardContent>
         </Card>
@@ -57,7 +58,7 @@ export function BudgetTab({ trip }: { trip: Trip }) {
               <ArrowUpRight className="h-5 w-5 text-emerald-500" />
             </div>
             <p className={`text-3xl font-bold mb-1 ${remainingBudget < 0 ? 'text-destructive' : 'text-emerald-500'}`}>
-              ₹{remainingBudget.toLocaleString()}
+              {formatMoney(remainingBudget, trip.currency)}
             </p>
             <p className="text-sm text-muted-foreground">Available to spend</p>
           </CardContent>
@@ -104,7 +105,7 @@ export function BudgetTab({ trip }: { trip: Trip }) {
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value: any) => `₹${value.toLocaleString()}`}
+                    formatter={(value: any) => formatMoney(value, trip.currency)}
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                   />
                   <Legend verticalAlign="bottom" height={36} iconType="circle" />
@@ -130,7 +131,7 @@ export function BudgetTab({ trip }: { trip: Trip }) {
                     </div>
                   </div>
                   <div className="font-bold text-foreground">
-                    ₹{expense.amount.toLocaleString()}
+                    {formatMoney(expense.amount, trip.currency)}
                   </div>
                 </div>
               ))}

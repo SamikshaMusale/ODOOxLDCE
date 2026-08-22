@@ -34,6 +34,20 @@ function buildCity(cityName: string, cityCountry: string, cityImage: string): Ci
   };
 }
 
+// Dynamically compute trip status from actual dates
+function computeTripStatus(startDate: string, endDate: string): Trip['status'] {
+  const now = new Date();
+  // Strip time component for date-only comparison
+  now.setHours(0, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setHours(0, 0, 0, 0);
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+
+  if (end < now) return 'Past';
+  return 'Upcoming';
+}
+
 // Transform Supabase rows into the existing Trip interface
 function transformTrip(
   tripRow: any,
@@ -82,8 +96,9 @@ function transformTrip(
     coverImage: tripRow.cover_image || '',
     startDate: tripRow.start_date,
     endDate: tripRow.end_date,
-    status: tripRow.status as Trip['status'],
+    status: computeTripStatus(tripRow.start_date, tripRow.end_date),
     budget: Number(tripRow.budget),
+    currency: tripRow.currency || 'INR',
     travelStyle: tripRow.travel_style || 'Balanced',
     stops,
     expenses,
@@ -175,6 +190,7 @@ export const TripProvider = ({ children }: { children: ReactNode }) => {
           end_date: trip.endDate,
           status: trip.status,
           budget: trip.budget,
+          currency: trip.currency || 'INR',
           travel_style: trip.travelStyle,
         })
         .select('id')
@@ -210,6 +226,7 @@ export const TripProvider = ({ children }: { children: ReactNode }) => {
           end_date: updatedTrip.endDate,
           status: updatedTrip.status,
           budget: updatedTrip.budget,
+          currency: updatedTrip.currency || 'INR',
           travel_style: updatedTrip.travelStyle,
           updated_at: new Date().toISOString(),
         })
