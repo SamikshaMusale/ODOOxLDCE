@@ -1,0 +1,171 @@
+# Supabase PostgreSQL Integration Plan
+
+Integrate Supabase as the persistent data layer for the existing GlobeTrotter frontend. No UI changes.
+
+## User Review Required
+
+> [!IMPORTANT]
+> The `.env.local` uses `VITE_SUPABASE_PUBLISHABLE_KEY` instead of the standard `VITE_SUPABASE_ANON_KEY`. I will use the variable name as-is from your `.env.local` file.
+
+> [!IMPORTANT]
+> I **cannot** execute SQL directly against your Supabase instance. I will generate the full SQL schema and seed data. **You must run it in the Supabase SQL Editor** before the app will work. I will tell you exactly when.
+
+> [!WARNING]
+> Authentication is deprioritized. The app will work without login for the MVP. All trips will use a hardcoded demo `user_id` UUID. Auth can be wired later.
+
+## Open Questions
+
+> [!IMPORTANT]
+> The existing "Add Activity" modal only lets you pick from `MOCK_ACTIVITIES` (5 predefined activities). After Supabase integration, should I keep this catalog-picker behavior (user selects from predefined activities), or should I replace it with a free-text form where users type activity name/description/cost? **For now, I will keep the picker behavior and store the selected activity's data directly in the database.**
+
+---
+
+## Architecture Overview
+
+```
+Existing UI (unchanged)
+       ↓
+TripContext (modified to load/save via Supabase)
+       ↓
+src/lib/supabase.ts (new — Supabase client)
+       ↓
+Supabase PostgreSQL
+```
+
+**Key design decision:** Rather than creating custom hooks for every entity, I will modify the **existing `TripContext`** to:
+1. Load trips (with stops, activities, expenses) from Supabase on mount
+2. Make `addTrip`, `updateTrip`, `deleteTrip` persist to Supabase
+3. Keep the same `Trip` interface consumed by all UI components
+
+This minimizes file changes and avoids touching any UI component.
+
+---
+
+## Database Schema
+
+### Tables
+
+| Table | Purpose |
+|-------|---------|
+| `trips` | Trip metadata (name, dates, budget, cover image) |
+| `trip_stops` | City stops with order_index |
+| `activities` | Per-stop, per-day activities with time/cost |
+| `expenses` | Trip expenses by category |
+
+No `profiles` table for MVP (auth deprioritized).
+
+### Relationships
+
+```
+trips (1) → (N) trip_stops
+trips (1) → (N) expenses
+trip_stops (1) → (N) activities
+```
+
+### Key columns
+
+- `activities.trip_stop_id` + `activities.date` → correct day association
+- `trip_stops.order_index` → route ordering
+- All tables use `uuid` primary keys via `gen_random_uuid()`
+
+---
+
+## Proposed Changes
+
+### Supabase Client
+
+#### [NEW] [supabase.ts](file:///c:/Users/DELL/OneDrive/Desktop/ODOOxLDCE/src/lib/supabase.ts)
+- Create Supabase client using `import.meta.env.VITE_SUPABASE_URL` and `import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY`
+- Single shared instance
+
+---
+
+### Database Schema SQL
+
+#### [NEW] [schema.sql](file:///c:/Users/DELL/OneDrive/Desktop/ODOOxLDCE/supabase/schema.sql)
+- `trips` table
+- `trip_stops` table with `order_index`
+- `activities` table with `trip_stop_id`, `date`, `time`
+- `expenses` table with category
+- Seed data matching the existing "European Summer Escape" and "Bali Retreat" demo trips
+
+---
+
+### Context Layer
+
+#### [MODIFY] [TripContext.tsx](file:///c:/Users/DELL/OneDrive/Desktop/ODOOxLDCE/src/context/TripContext.tsx)
+- Load trips from Supabase on mount (with stops, activities, expenses)
+- Transform DB rows → existing `Trip` interface shape
+- `addTrip`: INSERT into `trips` table
+- `updateTrip`: Sync stops/activities/expenses to Supabase
+- `deleteTrip`: DELETE cascade
+- Add `loading` state to context
+- Keep `MOCK_CITIES` and `MOCK_ACTIVITIES` as the city/activity catalog (unchanged)
+
+---
+
+### Data Model
+
+#### [MODIFY] [mock.ts](file:///c:/Users/DELL/OneDrive/Desktop/ODOOxLDCE/src/data/mock.ts)
+- Keep all interfaces unchanged
+- Keep `MOCK_CITIES` and `MOCK_ACTIVITIES` as catalog data
+- Keep `MOCK_USER` for display
+- Remove `MOCK_TRIPS` usage (data comes from Supabase now)
+
+---
+
+### Trip Creation
+
+#### [MODIFY] [CreateTrip.tsx](file:///c:/Users/DELL/OneDrive/Desktop/ODOOxLDCE/src/pages/CreateTrip.tsx)
+- Use the updated `addTrip` from context (now persists to Supabase)
+- Use the returned UUID from Supabase as trip ID instead of `Date.now()`
+
+---
+
+### Package
+
+#### [MODIFY] [package.json](file:///c:/Users/DELL/OneDrive/Desktop/ODOOxLDCE/package.json)
+- Add `@supabase/supabase-js` dependency
+
+---
+
+## Files NOT Modified
+
+All UI components remain untouched:
+- `Dashboard.tsx`, `Trips.tsx`, `TripWorkspace.tsx`
+- `OverviewTab.tsx`, `ItineraryTab.tsx`, `CalendarTab.tsx`, `BudgetTab.tsx`
+- `AppLayout.tsx`, `Sidebar.tsx`, `Topbar.tsx`
+- All `ui/` components
+- `SharedTrip.tsx`, `Explore.tsx`, `Profile.tsx`
+- `Login.tsx`, `Signup.tsx`
+
+These components already consume `trip` objects from context — they will automatically display Supabase data.
+
+---
+
+## Verification Plan
+
+### Manual Verification
+1. Run the generated SQL in Supabase SQL Editor
+2. `npm run dev` — app loads with demo data from Supabase
+3. Create a new trip → persists after refresh
+4. Add a stop → persists after refresh
+5. Add activity to specific day → appears under correct day after refresh
+6. Add second activity to same day → both remain after refresh
+7. Delete activity → stays deleted after refresh
+8. Budget tab shows correct numbers from persisted expenses
+9. `npm run build` — no TypeScript errors
+10. `git status` — `.env.local` not tracked
+
+---
+
+## Priority Order
+
+1. ✅ Install `@supabase/supabase-js`
+2. ✅ Create `src/lib/supabase.ts`
+3. ✅ Generate SQL schema + seed data
+4. ✅ Modify `TripContext.tsx` for full Supabase CRUD
+5. ✅ Modify `CreateTrip.tsx` for Supabase trip creation
+6. ⏭️ Auth (skipped for MVP — time constraint)
+7. ⏭️ RLS policies (skipped — no auth yet)
+8. ⏭️ Public sharing (leave existing behavior)

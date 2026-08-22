@@ -21,29 +21,30 @@ export function CreateTrip() {
     description: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Create mock trip
-    setTimeout(() => {
-      const newTrip: Trip = {
-        id: `t${Date.now()}`,
-        name: formData.name,
-        coverImage: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80&w=1200',
-        startDate: new Date(formData.startDate).toISOString(),
-        endDate: new Date(formData.endDate).toISOString(),
-        status: 'Draft',
-        budget: parseInt(formData.budget) || 0,
-        travelStyle: 'Balanced',
-        stops: [],
-        expenses: []
-      };
-      
-      addTrip(newTrip);
-      setIsLoading(false);
-      navigate(`/trips/${newTrip.id}`);
-    }, 800);
+    const newTrip: Trip = {
+      id: '', // Will be assigned by Supabase
+      name: formData.name,
+      coverImage: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80&w=1200',
+      startDate: new Date(formData.startDate).toISOString(),
+      endDate: new Date(formData.endDate).toISOString(),
+      status: 'Draft',
+      budget: parseInt(formData.budget) || 0,
+      travelStyle: 'Balanced',
+      stops: [],
+      expenses: []
+    };
+    
+    const newId = await addTrip(newTrip);
+    setIsLoading(false);
+    if (newId) {
+      navigate(`/trips/${newId}`);
+    } else {
+      navigate('/trips');
+    }
   };
 
   return (
