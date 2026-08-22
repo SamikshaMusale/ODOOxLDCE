@@ -1,0 +1,60 @@
+# Complete Trip Workspace and Itinerary Builder
+
+This plan details the implementation of a fully interactive, local-state-driven Trip Workspace for GlobeTrotter. This is the core "travel planning canvas" of the application, focusing on visual itinerary building, dynamic timelines, and budget calculation.
+
+## Proposed Changes
+
+### State Management & Context
+#### [MODIFY] `src/context/TripContext.tsx`
+No structural changes are needed to the provider itself, but the consumer components will heavily utilize the existing `updateTrip` method. I will build utility functions inside the workspace to deep clone the `Trip` object, apply the necessary mutations (add/edit/delete/reorder stops and activities), and push the updated object to context.
+
+### Workspace Core
+#### [MODIFY] `src/pages/TripWorkspace.tsx`
+- Implement the "Share Trip" modal containing the public link and copy button.
+- Pass the `updateTrip` function down to the tabs so they can mutate the trip.
+- Improve the Header to dynamically calculate the duration, number of cities, and display the trip cover image with proper fallbacks if Unsplash links break.
+
+### The Itinerary Builder (CRITICAL)
+#### [MODIFY] `src/components/workspace/ItineraryTab.tsx`
+- **Route Visualizer:** Build the "Your Route" section showing stops connected visually (Rome ↓ Florence ↓ Venice).
+- **Add Stop Modal:** Use Shadcn `Dialog` to create an "Add Stop" interface. Users can search `MOCK_CITIES`, select one, set arrival/departure dates, and append it to the trip.
+- **Stop Controls:** Add "Edit", "Remove", and "Move Up/Down" buttons to reorder cities. Reordering will immediately swap the array indexes in the `trip.stops` array and call `updateTrip`.
+- **Activity Management:** Add an "Add Activity" modal to each stop. Users can search `MOCK_ACTIVITIES`, pick a date/time, and add it. Implement "Edit Activity" and "Remove Activity" controls.
+- **Day-Wise Itinerary:** Render the selected activities chronologically per day. Each day will clearly show Date → City → Activities → Time → Duration → Cost.
+
+### Timeline & Calendar Views
+#### [MODIFY] `src/components/workspace/CalendarTab.tsx`
+- Implement a polished vertical Timeline view.
+- Map all `trip.stops.activities` across the entire trip chronologically.
+- Apply subtle visual treatments (e.g., specific icons/colors) based on the activity category (Sightseeing, Food, Culture, etc.).
+- Ensure it feels like a readable, scannable timeline.
+
+### Dynamic Budget Integration
+#### [MODIFY] `src/components/workspace/BudgetTab.tsx`
+- Tie the budget calculations directly to the activities in the itinerary.
+- Dynamically calculate:
+  - Total activity cost (sum of all activity costs)
+  - Total estimated trip cost
+  - Budget remaining
+- When the user adds/removes activities in the Itinerary, the Budget tab will automatically reflect the changes via context.
+
+### Overview & Public Share
+#### [MODIFY] `src/components/workspace/OverviewTab.tsx`
+- Add a visual route overview (e.g., Rome → Florence → Venice).
+- Display summary statistics (Days, Cities, Activities, Total Cost).
+#### [MODIFY] `src/pages/SharedTrip.tsx`
+- Update the read-only public view to render the new day-wise timeline layout.
+- Ensure the public page feels like a polished travel guide.
+
+### Image Audit
+- Implement a standard fallback for all `img` tags to ensure no broken browser placeholders appear if an Unsplash link fails.
+
+## Verification Plan
+1. Open the "European Summer Escape" mock trip.
+2. Add a new stop ("Paris") and verify the route updates visually.
+3. Edit Paris dates.
+4. Move Paris up in the route order.
+5. Add a "Food" activity to Paris.
+6. Verify the activity appears in the day-wise itinerary, timeline, and calendar.
+7. Verify the activity cost is deducted from the remaining budget in the Budget tab.
+8. Click "Share Trip" and verify the public itinerary renders correctly.
